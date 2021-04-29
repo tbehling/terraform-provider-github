@@ -1,3 +1,32 @@
+## 4.9.2 (April 18, 2021)
+
+BUG FIXES:
+
+- correct visibility for repositories created via a template ([#761](https://github.com/integrations/terraform-provider-github/issues/761))
+
+
+## 4.9.1 (April 17, 2021)
+
+BUG FIXES:
+
+- Bump Go version to 1.16 for acceptance tests and darwin/arm64 releases
+- Update acceptance tests to v2.2.0
+- Re-instate releases of darwin/arm64
+
+## 4.9.0 (April 17, 2021)
+
+ENHANCEMENTS:
+
+* **New Data Sources** `github_repository_pull_request` / `github_repository_pull_requests` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
+* **New Resource** `github_repository_pull_request` ([#739](https://github.com/integrations/terraform-provider-github/issues/739))
+* Add `repositories` attribute for `github_organization` data source ([#750](https://github.com/integrations/terraform-provider-github/issues/750))
+* Add import functionality for `github_actions_secret` ([#745](https://github.com/integrations/terraform-provider-github/issues/745))
+
+BUG FIXES:
+
+- Detect and overwrite value drift for `github_actions_secret` and `github_actions_organization_secret` ([#740](https://github.com/integrations/terraform-provider-github/pull/740))
+- Do not destroy repositories when `name` attribute changes ([#699](https://github.com/integrations/terraform-provider-github/pull/699))
+
 ## 4.8.0 (April 9, 2021)
 
 BUG FIXES:
@@ -5,6 +34,12 @@ BUG FIXES:
 -  Deprecate `organization` / `GITHUB_ORGANIZATION` provider configuration options ([#735](https://github.com/integrations/terraform-provider-github/pull/735))
 
 ## 4.7.0 (April 9, 2021)
+
+REGRESSIONS:
+
+- new repositories created via a template have a public visibility ([#758](https://github.com/integrations/terraform-provider-github/issues/758))
+  - workaround: a subsequent plan / apply will set the visibility to what is configured
+  - fix: see v4.9.2
 
 ENHANCEMENTS:
 

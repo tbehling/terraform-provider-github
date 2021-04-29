@@ -17,6 +17,12 @@ func resourceGithubActionsOrganizationSecret() *schema.Resource {
 		Read:   resourceGithubActionsOrganizationSecretRead,
 		Update: resourceGithubActionsOrganizationSecretCreateOrUpdate,
 		Delete: resourceGithubActionsOrganizationSecretDelete,
+		Importer: &schema.ResourceImporter{
+			State: func(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+				d.Set("secret_name", d.Id())
+				return []*schema.ResourceData{d}, nil
+			},
+		},
 
 		Schema: map[string]*schema.Schema{
 			"secret_name": {
@@ -131,8 +137,47 @@ func resourceGithubActionsOrganizationSecretRead(d *schema.ResourceData, meta in
 	}
 
 	d.Set("plaintext_value", d.Get("plaintext_value"))
-	d.Set("updated_at", secret.UpdatedAt.String())
 	d.Set("created_at", secret.CreatedAt.String())
+	d.Set("visibility", secret.Visibility)
+
+	selectedRepositoryIDs := []int64{}
+
+	if secret.Visibility == "selected" {
+		selectedRepoList, _, err := client.Actions.ListSelectedReposForOrgSecret(ctx, owner, d.Id())
+		if err != nil {
+			return err
+		}
+
+		selectedRepositories := selectedRepoList.Repositories
+
+		for _, repo := range selectedRepositories {
+			selectedRepositoryIDs = append(selectedRepositoryIDs, repo.GetID())
+		}
+	}
+
+	d.Set("selected_repository_ids", selectedRepositoryIDs)
+
+	// This is a drift detection mechanism based on timestamps.
+	//
+	// If we do not currently store the "updated_at" field, it means we've only
+	// just created the resource and the value is most likely what we want it to
+	// be.
+	//
+	// If the resource is changed externally in the meantime then reading back
+	// the last update timestamp will return a result different than the
+	// timestamp we've persisted in the state. In that case, we can no longer
+	// trust that the value (which we don't see) is equal to what we've declared
+	// previously.
+	//
+	// The only solution to enforce consistency between is to mark the resource
+	// as deleted (unset the ID) in order to fix potential drift by recreating
+	// the resource.
+	if updatedAt, ok := d.GetOk("updated_at"); ok && updatedAt != secret.UpdatedAt.String() {
+		log.Printf("[WARN] The secret %s has been externally updated in GitHub", d.Id())
+		d.SetId("")
+	} else if !ok {
+		d.Set("updated_at", secret.UpdatedAt.String())
+	}
 
 	return nil
 }
